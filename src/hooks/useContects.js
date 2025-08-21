@@ -15,17 +15,17 @@ const useContects = () => {
       const response = await constactNums.json();
       const filter = response.map(r=>r.phone)
       setPhoneNum(filter)
+      console.log(phoneNum);
+      
     } catch (e) {
       console.log('Error in use contects' + JSON.stringify(e, null, 2));
     }
   }
 
   useEffect(() => {
-    console.log('contacts');
-
     getPhone();
   }, []);
-  return phoneNum;
+  return {phoneNum,getPhone};
 };
 
 export default useContects;

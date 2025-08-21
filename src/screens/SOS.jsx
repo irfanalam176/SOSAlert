@@ -1,5 +1,5 @@
 import firestore from '@react-native-firebase/firestore';
-import React, {useEffect, useState, useRef} from 'react';
+import React, {useEffect, useState, useRef, useCallback} from 'react';
 import Geolocation from '@react-native-community/geolocation';
 import {
   PermissionsAndroid,
@@ -30,6 +30,7 @@ import {useColor} from '../hooks/context/ColorContext';
 import {apiUrl, socketUrl} from '../constants';
 import {promptForEnableLocationIfNeeded} from 'react-native-android-location-enabler';
 import useContects from '../hooks/useContects';
+import { useFocusEffect } from '@react-navigation/native';
 const {SmsModule} = NativeModules;
 const SOCKET_SERVER_URL = socketUrl; // Your server IP & port
 
@@ -37,7 +38,8 @@ const SOS = ({navigation}) => {
   const style = useStyle();
   const {secondaryColor} = useColor();
   const hasSentSms = useRef(false);
-  const phoneNum = useContects();
+  
+  const {phoneNum,getPhone} = useContects();
 
   const webviewRef = useRef(null);
   const socketRef = useRef(null);
@@ -71,6 +73,15 @@ const SOS = ({navigation}) => {
       return status === RESULTS.GRANTED;
     }
   };
+
+
+  // get phone on focus of screen
+  useFocusEffect(useCallback(()=>{
+    getPhone()
+    hasSentSms.current=false
+  },[]))
+
+
 
   useEffect(() => {
     const init = async () => {
