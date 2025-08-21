@@ -17,9 +17,9 @@ import WebView from 'react-native-webview';
 import {lightColor} from '../colors/Colors';
 import Geolocation from '@react-native-community/geolocation';
 import io from 'socket.io-client';
-import {apiUrl} from '../constants';
+import {apiUrl, socketUrl} from '../constants';
 
-const SOCKET_SERVER_URL = 'http://192.168.227.73:4000';
+const SOCKET_SERVER_URL = socketUrl;
 
 const LocationPage = ({navigation, route}) => {
   const style = useStyle();

@@ -1,39 +1,47 @@
 import firestore from '@react-native-firebase/firestore';
-import React, { useEffect, useState, useRef } from 'react';
+import React, {useEffect, useState, useRef} from 'react';
 import Geolocation from '@react-native-community/geolocation';
 import {
   PermissionsAndroid,
   Platform,
   View,
   Text,
-  ScrollView,
   TouchableOpacity,
   Image,
   Pressable,
   ImageBackground,
+  NativeModules,
 } from 'react-native';
-import { WebView } from 'react-native-webview';
-import { request, PERMISSIONS, RESULTS } from 'react-native-permissions';
+import {WebView} from 'react-native-webview';
+import {check, request, PERMISSIONS, RESULTS} from 'react-native-permissions';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import io from 'socket.io-client';
-import { useStyle } from '../style/style';
+import {useStyle} from '../style/style';
 import DropShadow from 'react-native-drop-shadow';
-import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
-import { lightColor } from '../colors/Colors';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+} from 'react-native-reanimated';
+import {lightColor} from '../colors/Colors';
 import FontAwesome5Icon from 'react-native-vector-icons/FontAwesome5';
 import ExtraBoldText from '../components/text/ExtraBoldText';
-import { useColor } from '../hooks/context/ColorContext';
-import { apiUrl } from '../constants';
+import {useColor} from '../hooks/context/ColorContext';
+import {apiUrl, socketUrl} from '../constants';
+import {promptForEnableLocationIfNeeded} from 'react-native-android-location-enabler';
+import useContects from '../hooks/useContects';
+const {SmsModule} = NativeModules;
+const SOCKET_SERVER_URL = socketUrl; // Your server IP & port
 
-const SOCKET_SERVER_URL = 'http://192.168.227.73:4000'; // Your server IP & port
-
-const SOS = ({ navigation }) => {
+const SOS = ({navigation}) => {
   const style = useStyle();
-  const { secondaryColor } = useColor();
+  const {secondaryColor} = useColor();
+  const hasSentSms = useRef(false);
+  const phoneNum = useContects();
 
   const webviewRef = useRef(null);
   const socketRef = useRef(null);
-  const initialCoords = { latitude: 33.6265, longitude: 73.0759 };
+  const initialCoords = {latitude: 33.6265, longitude: 73.0759};
 
   const [latitude, setLatitude] = useState(initialCoords.latitude);
   const [longitude, setLongitude] = useState(initialCoords.longitude);
@@ -44,7 +52,7 @@ const SOS = ({ navigation }) => {
 
   const scale = useSharedValue(1);
   const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
+    transform: [{scale: scale.value}],
   }));
 
   const requestLocationPermission = async () => {
@@ -55,7 +63,7 @@ const SOS = ({ navigation }) => {
           title: 'Location Permission',
           message: 'This app needs location access to work properly.',
           buttonPositive: 'OK',
-        }
+        },
       );
       return granted === PermissionsAndroid.RESULTS.GRANTED;
     } else {
@@ -108,7 +116,16 @@ const SOS = ({ navigation }) => {
     if (isTracking && userId && socketConnected) {
       watchId = Geolocation.watchPosition(
         pos => {
-          const { latitude, longitude } = pos.coords;
+          const {latitude, longitude} = pos.coords;
+
+          if (!hasSentSms.current) {
+            hasSentSms.current = true; // ✅ lock it
+            sendSilentSms(
+              `This contact needs help. Location: https://maps.google.com/?q=${latitude},${longitude}`,
+            );
+            console.log('Silent SMS sent once ✅');
+          }
+
           setLatitude(latitude);
           setLongitude(longitude);
 
@@ -120,11 +137,18 @@ const SOS = ({ navigation }) => {
           });
 
           if (webviewRef.current) {
-            webviewRef.current.postMessage(JSON.stringify({ latitude, longitude }));
+            webviewRef.current.postMessage(
+              JSON.stringify({latitude, longitude}),
+            );
           }
         },
         error => console.error(error),
-        { enableHighAccuracy: true, distanceFilter: 1, interval: 1000, fastestInterval: 1000 }
+        {
+          enableHighAccuracy: true,
+          distanceFilter: 1,
+          interval: 1000,
+          fastestInterval: 1000,
+        },
       );
     }
 
@@ -133,13 +157,27 @@ const SOS = ({ navigation }) => {
     };
   }, [isTracking, userId, socketConnected]);
 
+  // Start sharing location
   const sosBtnPressed = async () => {
-    scale.value = withSpring(0.9, { damping: 5, stiffness: 100 });
+    if (Platform.OS === 'android') {
+      try {
+        await promptForEnableLocationIfNeeded();
+        console.log('Location services enabled or already enabled');
+      } catch (enableError) {
+        console.warn('Location services not enabled:', enableError);
+        // Stop here, do not proceed if location not enabled
+        return;
+      }
+    }
+
+    scale.value = withSpring(0.9, {damping: 5, stiffness: 100});
     setDisable(true);
     setIsTracking(true);
 
     try {
       if (!userId) throw new Error('User ID not found');
+
+      socketRef.current?.emit('startSOS', userId);
 
       const userName = (await AsyncStorage.getItem('userName')) || '';
 
@@ -152,7 +190,7 @@ const SOS = ({ navigation }) => {
 
       const response = await fetch(`${apiUrl}/sos/set-sos/${userId}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {'Content-Type': 'application/json'},
         body: JSON.stringify(sosData),
       });
 
@@ -165,6 +203,14 @@ const SOS = ({ navigation }) => {
     } finally {
       setDisable(false);
     }
+  };
+
+  // Stop sharing location
+  const stopSharing = () => {
+    scale.value = withSpring(1, {damping: 5, stiffness: 100});
+    setIsTracking(false);
+    socketRef.current?.emit('stopSOS', userId);
+    console.log('Stopped sharing location for user:', userId);
   };
 
   const leafletMap = `
@@ -199,10 +245,36 @@ const SOS = ({ navigation }) => {
     </html>
   `;
 
+  async function sendSilentSms(message) {
+
+    if (Platform.OS !== 'android') {
+      console.log('Silent SMS is only supported on Android');
+      return;
+    }
+    // Check if permission is already granted
+    const result = await check(PERMISSIONS.ANDROID.SEND_SMS);
+
+    if (result === RESULTS.GRANTED) {
+      SmsModule.sendSms(phoneNum, message);
+    } else {
+      // Request permission if not granted
+      const reqResult = await request(PERMISSIONS.ANDROID.SEND_SMS);
+
+      if (reqResult === RESULTS.GRANTED) {
+        SmsModule.sendSms(phoneNum, message);
+      } else {
+        console.log('SMS permission denied');
+      }
+    }
+  }
+
   return (
     <View style={style.mainBg}>
       <View style={style.homeHeader}>
-        <Image style={style.logo} source={require('../assets/images/logo.png')} />
+        <Image
+          style={style.logo}
+          source={require('../assets/images/logo.png')}
+        />
         <TouchableOpacity onPress={() => navigation.navigate('layout')}>
           <FontAwesome5Icon name="cogs" size={30} color={secondaryColor} />
         </TouchableOpacity>
@@ -212,39 +284,70 @@ const SOS = ({ navigation }) => {
       <Text style={style.warning}>{latitude}</Text>
       <Text style={style.warning}>{longitude}</Text>
 
-      <ImageBackground source={require('../assets/images/map.png')} style={style.bgMap}>
+      <ImageBackground
+        source={require('../assets/images/map.png')}
+        style={style.bgMap}>
         <DropShadow
           style={{
             shadowColor: disable ? secondaryColor : 'black',
-            shadowOffset: { width: 0, height: 0 },
+            shadowOffset: {width: 0, height: 0},
             shadowOpacity: 1,
             shadowRadius: 5,
-          }}
-        >
+          }}>
           <View style={style.sosBtnOuter}>
-            <Pressable onPress={sosBtnPressed} disabled={disable}>
-              <DropShadow
-                style={{
-                  shadowColor: disable ? secondaryColor : 'black',
-                  shadowOffset: { width: 0, height: 0 },
-                  shadowOpacity: 1,
-                  shadowRadius: 5,
-                }}
-              >
-                <Animated.View style={[style.sosButton, animatedStyle]}>
-                  <ExtraBoldText style={{ color: lightColor, fontSize: 100 }}>SOS</ExtraBoldText>
-                </Animated.View>
-              </DropShadow>
-            </Pressable>
+            {!isTracking ? (
+              <Pressable onPress={sosBtnPressed} disabled={disable}>
+                <DropShadow
+                  style={{
+                    shadowColor: disable ? secondaryColor : 'black',
+                    shadowOffset: {width: 0, height: 0},
+                    shadowOpacity: 1,
+                    shadowRadius: 5,
+                  }}>
+                  <Animated.View style={[style.sosButton, animatedStyle]}>
+                    <ExtraBoldText style={{color: lightColor, fontSize: 100}}>
+                      SOS
+                    </ExtraBoldText>
+                  </Animated.View>
+                </DropShadow>
+              </Pressable>
+            ) : (
+              <Pressable onPress={stopSharing}>
+                <DropShadow
+                  style={{
+                    shadowColor: 'red',
+                    shadowOffset: {width: 0, height: 0},
+                    shadowOpacity: 1,
+                    shadowRadius: 5,
+                  }}>
+                  <Animated.View
+                    style={[
+                      style.sosButton,
+                      animatedStyle,
+                      {backgroundColor: 'red'},
+                    ]}>
+                    <ExtraBoldText style={{color: lightColor, fontSize: 40}}>
+                      Stop Sharing
+                    </ExtraBoldText>
+                  </Animated.View>
+                </DropShadow>
+              </Pressable>
+            )}
           </View>
         </DropShadow>
       </ImageBackground>
 
-      <View style={{ height: 300, marginTop: 20, paddingRight: 10, backgroundColor: lightColor }}>
+      <View
+        style={{
+          height: 300,
+          marginTop: 20,
+          paddingRight: 10,
+          backgroundColor: lightColor,
+        }}>
         <WebView
           ref={webviewRef}
           originWhitelist={['*']}
-          source={{ html: leafletMap }}
+          source={{html: leafletMap}}
           javaScriptEnabled
           domStorageEnabled
           style={style.map}
@@ -252,7 +355,7 @@ const SOS = ({ navigation }) => {
       </View>
 
       {latitude && longitude && (
-        <View style={{ alignItems: 'center', marginTop: 10 }}>
+        <View style={{alignItems: 'center', marginTop: 10}}>
           <Text>Latitude: {latitude.toFixed(6)}</Text>
           <Text>Longitude: {longitude.toFixed(6)}</Text>
         </View>
