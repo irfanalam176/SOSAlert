@@ -126,8 +126,8 @@ const Setting = ({navigation}) => {
           <RegularText>Privacy Policy & Terms of Use</RegularText>
           <FontAwesome5 name="chevron-right" size={20} style={style.formIcon} />
         </TouchableOpacity>
-        <TouchableOpacity style={style.settingLinks} onPress={()=>navigation.navigate("locationPage",{userId:1})}>
-          <RegularText>About the App</RegularText>
+        <TouchableOpacity style={style.settingLinks} onPress={()=>navigation.navigate("help")}>
+          <RegularText>Help</RegularText>
           <FontAwesome5 name="chevron-right" size={20} style={style.formIcon} />
         </TouchableOpacity>
         <TouchableOpacity

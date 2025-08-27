@@ -253,30 +253,6 @@ const ProfileManagement = ({ navigation, route }) => {
 
           <View style={style.seperator}></View>
 
-          <View style={[style.profileDetail, { flexDirection: 'column', alignItems: 'flex-start', gap: 10 }]}>
-            <RegularText>Default Emergency Type</RegularText>
-            <DropDownPicker
-              dropDownContainerStyle={{ borderColor: secondaryColor }}
-              dropDownDirection="AUTO"
-              style={style.dropdown}
-              open={open}
-              value={value}
-              items={items}
-              setOpen={setOpen}
-              setValue={setValue}
-              setItems={setItems}
-              textStyle={{
-                color: 'black',
-                fontFamily: 'Oxanium-Bold',
-                fontSize: 17,
-              }}
-              labelStyle={{
-                color: lightColor,
-                fontFamily: 'Oxanium-Bold',
-                fontSize: 17,
-              }}
-            />
-          </View>
         </View>
       </DropShadow>
     </ScrollView>

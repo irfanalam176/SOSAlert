@@ -28,7 +28,7 @@ const PrivacyPolicyAndTermsOfUse= ({navigation}) => {
       </ExtraBoldText>
 
       <SmallText>
-        Welcome to Emergency Alert. Your privacy is important to us. This
+        Welcome to SOS Alert. Your privacy is important to us. This
         Privacy Policy explains how we collect, use, and protect your personal
         information when you use our app
       </SmallText>
@@ -103,18 +103,6 @@ const PrivacyPolicyAndTermsOfUse= ({navigation}) => {
       <BoldText style={style.boldTextSubTopic}>Secure Storage</BoldText>
       <SmallText>
         Data is stored securely and deleted when no longer needed.
-      </SmallText>
-
-      <ExtraBoldText style={style.extraBoldTextDark}>
-        User Control & Consent
-      </ExtraBoldText>
-      <BoldText style={style.boldTextSubTopic}>Opting Out</BoldText>
-      <SmallText>
-        Users can disable location tracking or delete their accounts.
-      </SmallText>
-      <BoldText style={style.boldTextSubTopic}>Modifying Information</BoldText>
-      <SmallText>
-        Users can update their emergency contacts and preferences at any time.
       </SmallText>
 
       <ExtraBoldText style={style.extraBoldTextDark}>

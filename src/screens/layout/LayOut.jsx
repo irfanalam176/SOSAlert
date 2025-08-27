@@ -12,6 +12,7 @@ import { useStyle } from '../../style/style'
 import PrivacyPolicyAndTermsOfUse from '../PrivacyPolicyAndTermsOfUse'
 import ColorPallet from '../ColorPallet'
 import DropShadow from 'react-native-drop-shadow'
+import Help from '../Help'
 
 const LayOut = ({navigation}) => {
   const style = useStyle()
@@ -26,6 +27,7 @@ const LayOut = ({navigation}) => {
     <Stack.Screen name='notifications' component={Notifications}/>
     <Stack.Screen name='privacyPolicyAndTermsOfUse' component={PrivacyPolicyAndTermsOfUse}/>
     <Stack.Screen name='colorPallet' component={ColorPallet}/>
+    <Stack.Screen name='help' component={Help}/>
   </Stack.Navigator>
     
     <View style={[style.bottomBar]}>

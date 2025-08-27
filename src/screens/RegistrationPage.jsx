@@ -150,7 +150,7 @@ const handleRegister = async () => {
             <View style={style.inputBox}>
               <FontAwesome5 name="user" size={20} style={style.formIcon} solid />
               <TextInput
-                placeholder="Irfan"
+                placeholder="Daffodil"
                 style={style.input}
                 placeholderTextColor="#999"
                 onChangeText={setName}
@@ -176,7 +176,7 @@ const handleRegister = async () => {
             <View style={style.inputBox}>
               <FontAwesome5 name="mobile" size={20} style={style.formIcon} solid />
               <TextInput
-                placeholder="03*********"
+                placeholder="03xxxxxxxxx"
                 style={style.input}
                 placeholderTextColor="#999"
                 keyboardType="phone-pad"
