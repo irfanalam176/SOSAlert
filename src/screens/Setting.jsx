@@ -8,7 +8,10 @@ import { lightColor } from '../colors/Colors';
 import { useColor } from '../hooks/context/ColorContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import LoaderKit from 'react-native-loader-kit';
+
 const Setting = ({navigation}) => {
+
+
    const [modalVisible, setModalVisible] = useState(false);
    const [isLoading, setIsLoading] = useState(false);
    const[userName,setUserName]=useState("")
@@ -107,7 +110,7 @@ const Setting = ({navigation}) => {
 
       <View style={[style.form, {marginTop: 5}]}>
         <TouchableOpacity style={style.settingLinks} onPress={()=>navigation.navigate("profileManagement",{userId:userId})}>
-          <RegularText>Profile Management</RegularText>
+          <RegularText>profile Management</RegularText>
           <FontAwesome5 name="chevron-right" size={20} style={style.formIcon} />
         </TouchableOpacity>
         <TouchableOpacity style={style.settingLinks} onPress={()=>navigation.navigate("contactsManagement",{userId:userId})}>
@@ -116,6 +119,10 @@ const Setting = ({navigation}) => {
         </TouchableOpacity>
         <TouchableOpacity style={style.settingLinks} onPress={()=>navigateTo("notifications")}>
           <RegularText>Notifications</RegularText>
+          <FontAwesome5 name="chevron-right" size={20} style={style.formIcon} />
+        </TouchableOpacity>
+        <TouchableOpacity style={style.settingLinks} onPress={()=>navigateTo("audio")}>
+          <RegularText>Voice</RegularText>
           <FontAwesome5 name="chevron-right" size={20} style={style.formIcon} />
         </TouchableOpacity>
         <TouchableOpacity style={style.settingLinks} onPress={()=>navigateTo("colorPallet")}>

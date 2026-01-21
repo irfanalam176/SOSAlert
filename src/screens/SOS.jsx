@@ -11,6 +11,7 @@ import {
   Pressable,
   ImageBackground,
   NativeModules,
+  Button,
 } from 'react-native';
 import {WebView} from 'react-native-webview';
 import {check, request, PERMISSIONS, RESULTS} from 'react-native-permissions';
@@ -31,6 +32,16 @@ import {apiUrl, socketUrl} from '../constants';
 import {promptForEnableLocationIfNeeded} from 'react-native-android-location-enabler';
 import useContects from '../hooks/useContects';
 import { useFocusEffect } from '@react-navigation/native';
+
+import Sound, {
+  AudioEncoderAndroidType,
+  AudioSourceAndroidType,
+  AVEncoderAudioQualityIOSType,
+  AVEncodingOption,
+  RecordBackType,
+  PlayBackType,
+} from 'react-native-nitro-sound';
+
 const {SmsModule} = NativeModules;
 const SOCKET_SERVER_URL = socketUrl; // Your server IP & port
 
@@ -51,6 +62,8 @@ const SOS = ({navigation}) => {
   const [disable, setDisable] = useState(false);
   const [isTracking, setIsTracking] = useState(false);
   const [socketConnected, setSocketConnected] = useState(false);
+
+  const[isRecording,setIsRecording]=useState(false)
 
   const scale = useSharedValue(1);
   const animatedStyle = useAnimatedStyle(() => ({
@@ -279,6 +292,68 @@ const SOS = ({navigation}) => {
     }
   }
 
+
+  const onStartRecord = async () => {
+  // Set up recording progress listener
+  console.log("start");
+  
+  Sound.addRecordBackListener((e) => {
+    console.log('Recording progress:', e.currentPosition, e.currentMetering);
+  });
+
+  const result = await Sound.startRecorder();
+  console.log('Recording started:', result);
+};
+
+const onStopRecord = async () => {
+  const fileUri = await Sound.stopRecorder();
+  Sound.removeRecordBackListener();
+
+  console.log('Recorded file:', fileUri);
+
+  await uploadAudio(fileUri);
+};
+
+const uploadAudio = async (fileUri) => {
+  const formData = new FormData();
+
+  formData.append('audio', {
+    uri: fileUri,              // USE AS IS
+    type: 'audio/mp3',         // IMPORTANT
+    name: `sos_${Date.now()}.mp3`,
+  });
+
+  formData.append('userId', userId);
+
+  try {
+    console.log("uploadin........");
+    
+    const response = await fetch(`${apiUrl}/upload-audio`, {
+      method: 'POST',
+      headers: {
+        Accept: "application/json"
+      },
+      body: formData,
+    });
+    console.log("uploadin........2");
+console.log(response);
+
+    return ;
+  } catch (error) {
+    console.log('Upload error:', error);
+  }
+};
+
+function toggleRecord() {
+  if (!isRecording) {
+    onStartRecord();
+  } else {
+    onStopRecord();
+  }
+  setIsRecording(!isRecording);
+}
+
+
   return (
     <View style={style.mainBg}>
       <View style={style.homeHeader}>
@@ -294,6 +369,23 @@ const SOS = ({navigation}) => {
       <Text style={style.warning}>Keep Your Location Enabled</Text>
       <Text style={style.warning}>{latitude}</Text>
       <Text style={style.warning}>{longitude}</Text>
+
+     <TouchableOpacity
+     style={{
+      width:50,
+      height:50,
+      backgroundColor:isRecording?"black":secondaryColor,
+      transform:[{scale:isRecording?1.5:1}],
+      borderRadius:100,
+      alignItems:"center",
+      justifyContent:"center",
+      marginHorizontal:"auto"
+     }}
+
+     onPress={toggleRecord}
+     >
+      <FontAwesome5Icon name='microphone' color={"white"} size={30}/>
+     </TouchableOpacity>
 
       <ImageBackground
         source={require('../assets/images/map.png')}

@@ -13,6 +13,7 @@ import PrivacyPolicyAndTermsOfUse from '../PrivacyPolicyAndTermsOfUse'
 import ColorPallet from '../ColorPallet'
 import DropShadow from 'react-native-drop-shadow'
 import Help from '../Help'
+import Audio from '../Audio'
 
 const LayOut = ({navigation}) => {
   const style = useStyle()
@@ -25,6 +26,7 @@ const LayOut = ({navigation}) => {
     <Stack.Screen name='profileManagement' component={ProfileManagement}/>
     <Stack.Screen name='contactsManagement' component={ContactsManagement}/>
     <Stack.Screen name='notifications' component={Notifications}/>
+    <Stack.Screen name='audio' component={Audio}/>
     <Stack.Screen name='privacyPolicyAndTermsOfUse' component={PrivacyPolicyAndTermsOfUse}/>
     <Stack.Screen name='colorPallet' component={ColorPallet}/>
     <Stack.Screen name='help' component={Help}/>
